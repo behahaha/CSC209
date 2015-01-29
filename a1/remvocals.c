@@ -23,8 +23,13 @@ int main(int argc, char *argv[]) {
 
 	//reading and coping the first 44 bytes
 	unsigned char buffer[44];
-	fread(&buffer, 1, 44, sourcewav);
-	fwrite(&buffer, 1, 44, destwav);
+	if (fread(&buffer, 1, 44, sourcewav) != 44) {
+		fprintf(stderr, "fread error while reading initial 44 bytes\n");
+	}
+	/////DOUBLE CHECK THE BELOW!!!!!/////
+	if (fwrite(&buffer, 1, 44, destwav) != 44) {
+		fprintf(stderr, "fwrite error while writing initial 44 bytes.\n");
+	}
 
 	//applying the algorithm to the rest of the file
 	while (1) {
