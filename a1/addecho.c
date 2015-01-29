@@ -41,14 +41,17 @@ int main(int argc, char *argv[]) {
 		} count++;
 	}
  	
+ 	if (volume_scale < 1) {
+ 		fprintf(stderr, "Incorrect Volume Scale\n");
+ 	}
  	//Checking if the two files given are valid.
 	if ((sourcewav = fopen(argv[5], "rb")) == NULL) {
-		fprintf(stderr, "1Can't open %s\n", argv[5]);
+		fprintf(stderr, "Can't open %s\n", argv[5]);
 		exit(1);
 	}
 
 	if ((destwav = fopen(argv[6], "wb")) == NULL) {
-		fprintf(stderr, "2Can't open %s\n", argv[6]);
+		fprintf(stderr, "Can't open %s\n", argv[6]);
 		fclose(sourcewav);
 		exit(1);
 	}
@@ -69,90 +72,105 @@ int main(int argc, char *argv[]) {
 
 	//reading samples from the original wav file
 	short *echoBuffer;
-	echoBuffer = malloc(delay);
-	int i = 0;
+	echoBuffer = calloc(delay, sizeof(short));
 
 	short *origBuffer;
-	origBuffer = malloc(delay);
-	i = 0;
+	origBuffer = calloc(delay, sizeof(short));
+	int i = 0;
 	while (i < delay && fread(&origBuffer[i], sizeof(short), 1, sourcewav) == 1) {
 		i++;
 	}
 	//writing the first delay samples mixed with 0 to the output file
-	i = 0;
-	while (i < delay) {
-		fwrite(&origBuffer[i], sizeof(short), 1, destwav);
-		i++;
+	int j = 0;
+	while (j < delay) {
+		fwrite(&origBuffer[j], sizeof(short), 1, destwav);
+		j++;
 	} 
-	// printf("%s\n", "FIRST ORIG");
-	// int m = 0;
-	// while (m < delay) {
-	// 	printf("%d\n", origBuffer[m]);
-	// 	m++;
-	// }
 
 	int flag = 1;
+	int samples = delay;
+	int s = 0;
 	short zero = 0;
 	while (1) {
 		//copying the contents of origBuffer to echoBuffer
-		i = 0;
+		int k = 0;
 		free(echoBuffer);
-		echoBuffer = malloc(delay);
-		while (i < delay) {
-			echoBuffer[i] = origBuffer[i];
-			i++;
+		echoBuffer = calloc(delay, sizeof(short));
+		while (k < delay) {
+			echoBuffer[k] = origBuffer[k];
+			k++;
 		}
+		printf("%d\n", (short) sizeof(echoBuffer));
+		printf("%d\n", (short) sizeof(origBuffer));
 		//applying scaling by volume
-		i = 0;
-		while (i < delay) {
-			echoBuffer[i] = echoBuffer[i] / (short) volume_scale;
-			i++;
+		int l = 0;
+		while (l < delay) {
+			//echoBuffer[l] = echoBuffer[l] / (short) volume_scale;
+			echoBuffer[l] = (short) echoBuffer[l] / (short) volume_scale;
+			l++;
 		}
 		//copying next delay samples into origBuffer, but if there 
 		//aren't samples left, fill the rest of the space with 0's.
-		i = 0;
 		free(origBuffer);
-		origBuffer = malloc(delay);
-		if (flag == 2) {
-			while (i < delay) {
-				origBuffer[i] = zero;
-				i++;
-			}
-			i = 0;
-			flag = 0;
-		}
-		
-		while (i < delay && flag != 0) {
-			if (fread(&origBuffer[i], sizeof(short), 1, sourcewav) != 1) {
+		origBuffer = calloc(delay, sizeof(short));
+		int n = 0;
+		while (n < delay && flag != 0) {
+			if (fread(&origBuffer[n], sizeof(short), 1, sourcewav) != 1) {
 				int rest_of_file;
-				for (rest_of_file = 0; rest_of_file < delay - i; rest_of_file++) {
-					origBuffer[i] = zero;
-				}
-				i = delay;
+				s = n;
+				for (rest_of_file = 0; rest_of_file < delay - n; rest_of_file++) {
+					origBuffer[n] = zero;
+				} 
 				flag = 0;
-			} 
-			i++;
+				samples--;
+			}
+			samples++;
+			n++;
 		}
 
 		//writing to output file
-		i = 0;
-		while (i < delay && echoBuffer[0] != zero) {
-			short mixed = echoBuffer[i] + origBuffer[i];
+		int p = 0;
+		while (p < delay) {
+			short mixed = (short) echoBuffer[p] + (short) origBuffer[p];
 			fwrite(&mixed, sizeof(short), 1, destwav);
-			i++;
-		}
-		if (flag == 0 && origBuffer[0] != zero) {
-			flag = 2;
+			p++;
 		}
 		//checking to see if we've reached the end of our file
-		if (flag == 0 && origBuffer[0] == zero) {
+		if (flag == 0) {
 			break;
 		}
 	}
+	int q = 0;
+	free(echoBuffer);
+	echoBuffer = calloc(delay, sizeof(short));
+	while (q < delay) {
+		echoBuffer[q] = origBuffer[q];
+		q++;
+	}
+	int u = 0;
+	while (u < delay) {
+		echoBuffer[u] = echoBuffer[u] / (short) volume_scale;
+		u++;
+	}
+	if (origBuffer[0] != zero) {
+	 	free(origBuffer);
+	 	origBuffer = calloc(delay, sizeof(short));
+		int r = 0;
+		while (r < delay) {
+			origBuffer[r] = zero;
+	 		r++;
+	    }
+	}
+	int t = 0;
+	while (t < s) {
+	    short mixed = (short) echoBuffer[t] + (short) origBuffer[t];
+	    //short mixed = echoBuffer[t];
+		fwrite(&mixed, sizeof(short), 1, destwav);
+		t++;
+	}
+
 	fclose(sourcewav);
 	fclose(destwav);
 	return 0;
 }//error checking for all system calls!!!!
 //zeroes may also be messing up
-
-// do last mixing after the while loop?
