@@ -44,9 +44,11 @@ void mem_init(int size) {
          perror("mmap");
          exit(1);
     }
-
-    /* NOTE: this function is incomplete */
-        
+    freelist = malloc(sizeof(struct block));
+    freelist->addr = mem;
+    freelist->size = sizeof(mem);
+    freelist->next = NULL;
+    allocated_list = NULL;        
 }
 
 void mem_clean(){
