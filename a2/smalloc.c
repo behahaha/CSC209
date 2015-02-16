@@ -14,28 +14,21 @@ struct block *allocated_list;
 
 void *smalloc(unsigned int nbytes) {
     struct block *curFree = freelist;
-    printf("%p and %p\n", curFree, freelist);
     while (curFree != NULL) {
         if (curFree->size - nbytes > 0) {
             struct block *newBlock = malloc(sizeof(struct block));
             newBlock->addr = curFree->addr;
-            printf("%p newBlock addr and %p curFree addr\n", newBlock->addr, curFree->addr);
             newBlock->size = nbytes;
-            printf("size of newBlock: %d\n", newBlock->size);
             if (allocated_list != NULL) {
-                printf("%p\n", allocated_list);
                 newBlock->next = allocated_list;
                 allocated_list = newBlock;
-                printf("allocated: %p, %d, %p ||  newBlock: %p, %d, %p\n", allocated_list->addr, allocated_list->size, allocated_list->next, newBlock->addr, newBlock->size, newBlock->next);
             } else {
                 newBlock->next = NULL;
                 allocated_list = newBlock;
-                printf("NULL: allocated: %p, %d, %p ||  newBlock: %p, %d, %p\n", allocated_list->addr, allocated_list->size, allocated_list->next, newBlock->addr, newBlock->size, newBlock->next);
             }
-            printf("\n");
-            freelist->addr = freelist->addr + nbytes;
-            freelist->size = freelist->size - nbytes;
-            return newBlock;
+            freelist->addr += nbytes;
+            freelist->size -= nbytes;
+            return newBlock->addr;
         } else {
             curFree = curFree->next;
         }
@@ -45,6 +38,11 @@ void *smalloc(unsigned int nbytes) {
 
 int sfree(void *addr) {
     return -1;
+}
+
+//just used for testing/debugging purposes
+void pr(void) {
+    printf("%p, %p, %d, %p", allocated_list, allocated_list->addr, allocated_list->size, allocated_list->next);
 }
 
 

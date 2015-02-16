@@ -19,10 +19,6 @@ int main(void) {
     int i;
 
     /* Call smalloc 4 times */
-//    printf("before any smalloc calls, state of allocated: ");
-//    print_allocated();
-    printf("before any smalloc calls, stae of free: ");
-    print_free();
     for(i = 0; i < 4; i++) {
         int num_bytes = (i+1) * 10;
     
@@ -36,15 +32,15 @@ int main(void) {
     printf("Contents of allocated memory:\n");
     print_mem();
     
-    printf("freeing %p result = %d\n", ptrs[1], sfree(ptrs[1]));
+//    printf("freeing %p result = %d\n", ptrs[1], sfree(ptrs[1]));
     
-    printf("List of allocated blocks:\n");
-    print_allocated();
-    printf("List of free blocks:\n");
-    print_free();
-    printf("Contents of allocated memory:\n");
-    print_mem();
+//    printf("List of allocated blocks:\n");
+//    print_allocated();
+//    printf("List of free blocks:\n");
+//    print_free();
+//    printf("Contents of allocated memory:\n");
+//   print_mem();
 
-    mem_clean();
+//    mem_clean();
     return 0;
 }
