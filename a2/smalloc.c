@@ -13,13 +13,16 @@ struct block *allocated_list;
 
 
 void *smalloc(unsigned int nbytes) {
-    struct block *allomem;
-    allomem = malloc(sizeof(struct block));
-    allomem->addr = freelist->addr;
-    allomem->size = nbytes;
-    allomem->next = NULL; 
-    freelist->addr = freelist->addr + nbytes;
-    freelist->size = freelist->size - nbytes;	
+    if (freelist->size - nbytes > 0) {
+        struct block *newBlock = malloc(sizeof(struct block));
+        newBlock->addr = freelist->addr;
+        newBlock->size = nbytes;
+        newBlock->next = allocated_list;
+        allocated_list = newBlock;
+        freelist->addr += nbytes;
+        freelist->size -= nbytes;
+        return newBlock;
+    }
     return NULL;
 }
 
