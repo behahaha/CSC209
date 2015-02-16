@@ -20,14 +20,14 @@ void *smalloc(unsigned int nbytes) {
         if (allocated_list == NULL) {
             newBlock->next = NULL;
         } else {
-            newBlock->next = allocated_list;
+            newBlock->next = &*allocated_list;
         }
         allocated_list = newBlock;
         freelist->addr += nbytes;
         freelist->size -= nbytes;
-        return newBlock; 
+        return allocated_list;
     } else {
-    return NULL;
+        return NULL;
     }
 }
 
@@ -61,7 +61,7 @@ void mem_init(int size) {
     }
     freelist = malloc(sizeof(struct block));
     freelist->addr = mem;
-    freelist->size = sizeof(mem);
+    freelist->size = sizeof(*mem);
     freelist->next = NULL;
     allocated_list = NULL;        
 } 
