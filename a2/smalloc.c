@@ -14,43 +14,34 @@ struct block *allocated_list;
 
 void *smalloc(unsigned int nbytes) {
     struct block *curFree = freelist;
-    struct block *curAllo = allocated_list;
+    printf("%p and %p\n", curFree, freelist);
     while (curFree != NULL) {
         if (curFree->size - nbytes > 0) {
             struct block *newBlock = malloc(sizeof(struct block));
             newBlock->addr = curFree->addr;
+            printf("%p newBlock addr and %p curFree addr\n", newBlock->addr, curFree->addr);
             newBlock->size = nbytes;
-            if (curAllo != NULL) {
-                newBlock->next = curAllo;
+            printf("size of newBlock: %d\n", newBlock->size);
+            if (allocated_list != NULL) {
+                printf("%p\n", allocated_list);
+                newBlock->next = allocated_list;
+                allocated_list = newBlock;
+                printf("allocated: %p, %d, %p ||  newBlock: %p, %d, %p\n", allocated_list->addr, allocated_list->size, allocated_list->next, newBlock->addr, newBlock->size, newBlock->next);
             } else {
                 newBlock->next = NULL;
+                allocated_list = newBlock;
+                printf("NULL: allocated: %p, %d, %p ||  newBlock: %p, %d, %p\n", allocated_list->addr, allocated_list->size, allocated_list->next, newBlock->addr, newBlock->size, newBlock->next);
             }
-            allocated_list = newBlock;
+            printf("\n");
             freelist->addr = freelist->addr + nbytes;
             freelist->size = freelist->size - nbytes;
-            return allocated_list;
+            return newBlock;
         } else {
             curFree = curFree->next;
         }
-    } return NULL;
-    // if (freelist->size - nbytes > 0) {
-    //     struct block *newBlock = malloc(sizeof(struct block));
-    //     newBlock->addr = freelist->addr;
-    //     newBlock->size = nbytes;
-    //     if (allocated_list == NULL) {
-    //         newBlock->next = NULL;
-    //     } else {
-    //         newBlock->next = &*allocated_list;
-    //     }
-    //     allocated_list = newBlock;
-    //     freelist->addr += nbytes;
-    //     freelist->size -= nbytes;
-    //     return allocated_list;
-    // } else {
-    //     return NULL;
-    // }
+    }
+     return NULL;
 }
-
 
 int sfree(void *addr) {
     return -1;
@@ -81,7 +72,7 @@ void mem_init(int size) {
     }
     freelist = malloc(sizeof(struct block));
     freelist->addr = mem;
-    freelist->size = sizeof(*mem);
+    freelist->size = size;
     freelist->next = NULL;
     allocated_list = NULL;        
 } 

@@ -19,7 +19,10 @@ int main(void) {
     int i;
 
     /* Call smalloc 4 times */
-    
+//    printf("before any smalloc calls, state of allocated: ");
+//    print_allocated();
+    printf("before any smalloc calls, stae of free: ");
+    print_free();
     for(i = 0; i < 4; i++) {
         int num_bytes = (i+1) * 10;
     
