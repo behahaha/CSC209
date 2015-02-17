@@ -128,14 +128,19 @@ void mem_init(int size) {
     allocated_list = NULL;        
 } 
 
-void mem_clean(){
-    struct block *freed;
-    struct block *allo;
-    for (freed = freelist; freed != NULL; freed = freed->next) {
+void mem_clean() {
+    struct block *freed = freelist;
+    struct block *ncur;
+    struct block *allo = allocated_list;
+    while (freed != NULL) {
+        ncur = freed->next;
         free(freed);
+        freed = ncur;
     }
-    for (allo = allocated_list; allo != NULL; allo = allo->next) {
+    while (allo != NULL) {
+        ncur = allo->next;
         free(allo);
-    } 
+        allo = ncur;
+    }
 }
 
