@@ -37,7 +37,60 @@ void *smalloc(unsigned int nbytes) {
 }
 
 int sfree(void *addr) {
-    return -1;
+    struct block *cur;
+    struct block *rightblock = NULL;
+    struct block *before = NULL;
+    struct block *after = NULL;
+    for (cur = allocated_list; cur != NULL; cur = cur->next) {
+        if (cur->addr == addr) {
+            printf("cur:%d , cur_next: %p\n", cur->size, cur->next);
+            rightblock = cur;
+            after = cur->next;
+            rightblock->next = NULL;
+        } else {
+            before = cur;
+        }
+    }
+    if (rightblock == NULL) {
+        return -1;
+    } else {
+        if (before == NULL && after == NULL) {
+            allocated_list = NULL;
+        } else if (before == NULL) {
+            allocated_list = after;
+        } else if (after == NULL) {
+            before->next = NULL;
+        } else if (after != NULL && before != NULL) {
+            before->next = after;
+        } else {
+            return -1;
+        }           
+    }
+    cur = NULL; //we want to use this variable again for searching the freelist
+    before = NULL; //we want to use this variable again for searching the freelist
+    after = NULL;
+    for (cur = freelist; cur != NULL; cur = cur->next) {
+        if (rightblock->addr < cur->addr) {
+            if (before == NULL && cur->next != NULL) {
+                freelist = rightblock;
+                rightblock->next = cur->next;
+            } else if (before != NULL && cur->next != NULL) {
+                before->next = rightblock;
+                rightblock->next = cur->next;
+            } else if (before == NULL && cur->next == NULL) {
+                freelist = rightblock;
+                rightblock->next = cur;
+            } else {
+                return -1;
+            }
+        } else if (rightblock->addr > cur->addr) {
+            before = cur;
+        }  
+    }
+    if (freelist == NULL) {
+        freelist = rightblock;
+    } 
+    return 0;
 }
 
 //just used for testing/debugging purposes
@@ -76,6 +129,13 @@ void mem_init(int size) {
 } 
 
 void mem_clean(){
-
+    struct block *freed;
+    struct block *allo;
+    for (freed = freelist; freed != NULL; freed = freed->next) {
+        free(freed);
+    }
+    for (allo = allocated_list; allo != NULL; allo = allo->next) {
+        free(allo);
+    } 
 }
 
