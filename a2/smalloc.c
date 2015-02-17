@@ -110,6 +110,9 @@ int sfree(void *addr) {
  * - 0: only used if the address space is associated with a file.
  */
 void mem_init(int size) {
+    if (size == 0) {
+        return;
+    }
     mem = mmap(NULL, size,  PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
     if(mem == MAP_FAILED) {
          perror("mmap");
