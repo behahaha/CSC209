@@ -17,8 +17,6 @@ struct block {
  * algorithm to use */
 void mem_init(int size);
 
-void pr();
-
 /* Reserves nbytes of space from the memory region created by mem_init.  Returns
  * a pointer to the reserved memory. Returns NULL if memory cannot be allocated */    
 void *smalloc(unsigned int nbytes);
