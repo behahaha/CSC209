@@ -93,12 +93,6 @@ int sfree(void *addr) {
     return 0;
 }
 
-//just used for testing/debugging purposes
-void pr(void) {
-    printf("%p, %p, %d, %p", allocated_list, allocated_list->addr, allocated_list->size, allocated_list->next);
-}
-
-
 /* Initialize the memory space used by smalloc,
  * freelist, and allocated_list
  * Note:  mmap is a system call that has a wide variety of uses.  In our
