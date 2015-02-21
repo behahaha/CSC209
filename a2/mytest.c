@@ -52,6 +52,7 @@ int main(void) {
 }
 
 //freeing the first block when there are 4 blocks allocated in allocated_list
+//interesting because then we have to reassign the allocated list pointer
 int freeingFirstBlock(void) {
 
     mem_init(SIZE1);
@@ -87,6 +88,7 @@ int freeingFirstBlock(void) {
 }
 
 //freeing the last block(most recently allocated) when there are 4 blocks allocated in allocated list
+//interesting because we need to see whether we are removing from the linked list properly
 int freeingLastBlock(void){
 
     mem_init(SIZE1);
@@ -122,6 +124,7 @@ int freeingLastBlock(void){
 } 
 
 //allocating no memory
+//testing to see whether the mem_init function handles this accordingly because mmap will not allow it
 int allocatingNone(void) {
 
     mem_init(SIZE0);
@@ -132,6 +135,8 @@ int allocatingNone(void) {
 }
 
 //allocating all the memory that was put into mem_init and then freeing it all
+//we need to see whether smalloc actually removes the right block from the freelist and what is
+// left in the freelist once this happens
 int allocatingAll(void) {
 
     mem_init(SIZE2);
@@ -155,6 +160,7 @@ int allocatingAll(void) {
 }
 
 //allocating 7 bytes of memory since there were some tricks with values under 8
+//just a personal test, this was giving me some trouble beforehand.
 int allocateSeven(void) {
     mem_init(7);
     void *ptr;
