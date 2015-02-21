@@ -15,7 +15,7 @@ struct block *allocated_list;
 void *smalloc(unsigned int nbytes) {
     struct block *curFree = freelist;
     while (curFree != NULL) {
-        if (curFree->size - nbytes > 0) {
+        if (curFree->size - nbytes >= 0) {
             struct block *newBlock = malloc(sizeof(struct block));
             newBlock->addr = curFree->addr;
             newBlock->size = nbytes;
@@ -33,14 +33,16 @@ void *smalloc(unsigned int nbytes) {
             curFree = curFree->next;
         }
     }
-     return NULL;
+    return NULL;
 }
+
 
 int sfree(void *addr) {
     struct block *cur;
     struct block *rightblock = NULL;
     struct block *before = NULL;
     struct block *after = NULL;
+    //finding the block in our allocated list and also keeping track of the blocks before and after it, if they exist. 
     for (cur = allocated_list; cur != NULL; cur = cur->next) {
         if (cur->addr == addr) {
             printf("cur:%d , cur_next: %p\n", cur->size, cur->next);
@@ -51,6 +53,7 @@ int sfree(void *addr) {
             before = cur;
         }
     }
+    //If we've found the block, now we will remove it from the linked list that is allocated_list
     if (rightblock == NULL) {
         return -1;
     } else {
@@ -66,6 +69,8 @@ int sfree(void *addr) {
             return -1;
         }           
     }
+    //Now what we want to do it find the correct position in our freelist to insert our newly freed block.
+    //There is only one place the block should go since they addresses must be in increasing order.
     cur = NULL; //we want to use this variable again for searching the freelist
     before = NULL; //we want to use this variable again for searching the freelist
     after = NULL;
@@ -80,6 +85,9 @@ int sfree(void *addr) {
             } else if (before == NULL && cur->next == NULL) {
                 freelist = rightblock;
                 rightblock->next = cur;
+            } else if (before != NULL && cur->next == NULL) {
+                before->next = rightblock;
+                rightblock->next = NULL; 
             } else {
                 return -1;
             }
@@ -92,6 +100,7 @@ int sfree(void *addr) {
     } 
     return 0;
 }
+
 
 /* Initialize the memory space used by smalloc,
  * freelist, and allocated_list
@@ -110,17 +119,27 @@ int sfree(void *addr) {
  * - 0: only used if the address space is associated with a file.
  */
 void mem_init(int size) {
+    if (size <= 0) {
+        printf("Invalid Size\n");
+        return;
+    }
+   
     mem = mmap(NULL, size,  PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
     if(mem == MAP_FAILED) {
          perror("mmap");
          exit(1);
     }
-    freelist = malloc(sizeof(struct block));
+    freelist = (struct block *) malloc(sizeof(struct block));
+    if (freelist == NULL) {
+        perror("malloc");
+        exit(1);
+    } 
     freelist->addr = mem;
     freelist->size = size;
     freelist->next = NULL;
     allocated_list = NULL;        
 } 
+
 
 void mem_clean() {
     struct block *freed = freelist;
@@ -128,12 +147,16 @@ void mem_clean() {
     struct block *allo = allocated_list;
     while (freed != NULL) {
         ncur = freed->next;
-        free(freed);
+        if (freed->size != 0) {
+            free(freed);
+        }
         freed = ncur;
     }
     while (allo != NULL) {
         ncur = allo->next;
-        free(allo);
+        if (allo->size != 0) {
+            free(allo);
+        }
         allo = ncur;
     }
 }
