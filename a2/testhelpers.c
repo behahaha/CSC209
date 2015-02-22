@@ -46,7 +46,7 @@ void print_mem() {
         
         /* print 16 bytes per line */
         int i, j;
-        for(i = 0; i < cur->size / 8; i++){
+        for(i = 0; i < (cur->size / 8) + 1; i++){
             if((i)%2 == 0){
                 printf("%5d:  ", i * 8);
             } else {
