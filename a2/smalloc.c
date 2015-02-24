@@ -28,6 +28,11 @@ void *smalloc(unsigned int nbytes) {
             }
             freelist->addr += nbytes;
             freelist->size -= nbytes;
+
+            if (freelist->size == 0) {
+                freelist = NULL;
+            }
+
             return newBlock->addr;
         } else {
             curFree = curFree->next;
@@ -45,7 +50,7 @@ int sfree(void *addr) {
     //finding the block in our allocated list and also keeping track of the blocks before and after it, if they exist. 
     for (cur = allocated_list; cur != NULL; cur = cur->next) {
         if (cur->addr == addr) {
-            printf("cur:%d , cur_next: %p\n", cur->size, cur->next);
+            //printf("cur:%d , cur_next: %p\n", cur->size, cur->next);
             rightblock = cur;
             after = cur->next;
             rightblock->next = NULL;
@@ -75,25 +80,29 @@ int sfree(void *addr) {
     before = NULL; //we want to use this variable again for searching the freelist
     after = NULL;
     for (cur = freelist; cur != NULL; cur = cur->next) {
-        if (rightblock->addr < cur->addr) {
-            if (before == NULL && cur->next != NULL) {
-                freelist = rightblock;
-                rightblock->next = cur->next;
-            } else if (before != NULL && cur->next != NULL) {
-                before->next = rightblock;
-                rightblock->next = cur->next;
-            } else if (before == NULL && cur->next == NULL) {
-                freelist = rightblock;
-                rightblock->next = cur;
-            } else if (before != NULL && cur->next == NULL) {
-                before->next = rightblock;
-                rightblock->next = NULL; 
+        if (before == NULL && cur->next == NULL) {
+            if (rightblock->addr > cur->addr) {
+                cur->next = rightblock;
             } else {
-                return -1;
-            }
+                rightblock->next = cur;
+                freelist = rightblock;
+            } break;
         } else if (rightblock->addr > cur->addr) {
             before = cur;
-        }  
+        } else if (rightblock->addr < cur->addr) {
+            if (before != NULL) {
+                before->next = rightblock;
+                rightblock->next = cur;
+                break;
+            } else if (before == NULL) {
+                rightblock->next = freelist;
+                freelist = rightblock;
+                break;
+            } 
+        }
+    }
+    if (before != NULL && cur == NULL) {
+        before->next = rightblock;
     }
     if (freelist == NULL) {
         freelist = rightblock;
