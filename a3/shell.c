@@ -102,8 +102,11 @@ int execute_cd(char** words) {
 	 * - If so, return an EXIT_FAILURE status to indicate something is 
 	 *   wrong.
 	 */
-
-
+    if ((words == NULL) | (words[0] == NULL) | (words[1] == NULL)) {
+        exit(EXIT_FAILURE);
+    } else if (is_builtin(words[0]) != 1) {
+        exit(EXIT_FAILURE);
+    }
 
 	/**
 	 * TODO: 
@@ -117,7 +120,17 @@ int execute_cd(char** words) {
 	 * Hints: see chdir and getcwd man pages.
 	 * Return the success/error code obtained when changing the directory.
 	 */
-	 
+    if (is_relative(words[1])) { 
+        char newcwd[MAX_DIRNAME]; 
+        getcwd(newcwd, MAX_DIRNAME-1);
+        newcwd[strlen(newcwd) + 1] = '\0';
+        char *slash = "/";
+        strncat(newcwd, slash, 1);
+	strncat(newcwd, words[1], MAX_DIRNAME - strlen(newcwd));
+        return chdir(newcwd);
+    } else {
+        return chdir(words[1]);
+    } 
 }
 
 
@@ -146,7 +159,6 @@ int execute_command(char **tokens) {
 	 *   would suffice.
 	 * Function returns only in case of a failure (EXIT_FAILURE).
 	 */
-
 
 }
 
@@ -189,7 +201,14 @@ int execute_simple_command(simple_command *cmd) {
 	 * - The parent should wait for the child.
 	 *   (see wait man pages).
 	 */
-	
+    int ret = -60;
+    if (is_builtin(cmd->tokens[0]) == 1) {
+        ret = execute_cd(cmd->tokens);
+    } else if (is_builtin(cmd->tokens[0]) == 2) {
+        ret = 0;
+        exit(EXIT_SUCCESS);
+    }
+    return ret;	
 }
 
 
