@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
 		
 		/* Construct chain of commands, if multiple commands */
 		command *cmd = construct_command(tokens);
-		//print_command(cmd, 0);
+	//	print_command(cmd, 0);
     
 		int exitcode = 0;
 		if (cmd->scmd) {
@@ -159,7 +159,14 @@ int execute_command(char **tokens) {
 	 *   would suffice.
 	 * Function returns only in case of a failure (EXIT_FAILURE).
 	 */
-
+    if (execvp(tokens[0], tokens) == -1) {
+        char *s  = malloc(strlen(tokens[0]) + 30); 
+        memcpy(s, tokens[0], strlen(tokens[0]));
+        char *msg = ": no such file of directory";
+        strncat(s, msg, sizeof(s) - strlen(tokens[0]));
+        perror(s);
+    }
+    exit(0);
 }
 
 
@@ -180,8 +187,68 @@ int execute_nonbuiltin(simple_command *s) {
 	 *   function above).
 	 * This function returns only if the execution of the program fails.
 	 */
-	
-
+    int status;
+    int f;
+    int fd;
+    int fdtwo; 
+    if (f = fork() == 0) {
+        if (s->in == NULL && s->out == NULL && s->err == NULL) {
+            execute_command(s->tokens);
+        } else if (s->in == NULL && s->out == NULL) {
+            fd = open(s->err, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR); 
+            dup2(fd, fileno(stderr));
+            close(fd);
+            execute_command(s->tokens);
+        } else if (s->in == NULL && s->err == NULL) {
+            fd = open(s->out, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+            dup2(fd, fileno(stdout));
+            close(fd); 
+            execute_command(s->tokens);
+        } else if (s->out == NULL && s->err == NULL) {
+            fd = open(s->in, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+            dup2(fd, fileno(stdin));
+            close(fd);
+            execute_command(s->tokens);
+        } else if (s->in == NULL) {
+            fd = open(s->out, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+            dup2(fd, fileno(stdout));
+            close(fd);
+            fdtwo = open(s->err, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+            dup2(fdtwo, fileno(stderr));
+            close(fdtwo);
+            execute_command(s->tokens); 
+        } else if (s->out == NULL) {
+            fd = open(s->in, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+            dup2(fd, fileno(stdin));
+            close(fd);
+            fdtwo = open(s->err, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+            dup2(fdtwo, fileno(stderr));
+            close(fdtwo);
+            execute_command(s->tokens);
+        } else if (s->err == NULL) {
+            fd = open(s->out, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+            dup2(fd, fileno(stdout));
+            close(fd);
+            fdtwo = open(s->in, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+            dup2(fdtwo, fileno(stdin));
+            close(fdtwo);
+            execute_command(s->tokens);
+        } else if (s->in != NULL && s->out != NULL && s->err != NULL) {
+            int fdthree;
+            fd = open(s->in, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+            dup2(fd, fileno(stdin));
+            close(fd);
+            fdtwo = (s->out, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+            dup2(fdtwo, fileno(stdout));
+            close(fdtwo);
+            fdthree = open(s->err, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+            dup2(fdthree, fileno(stderr));
+            close(fdthree);
+        }    
+    } else {
+        wait(&status);
+    }
+    return 0;
 }
 
 
@@ -201,13 +268,17 @@ int execute_simple_command(simple_command *cmd) {
 	 * - The parent should wait for the child.
 	 *   (see wait man pages).
 	 */
-    int ret = -60;
-    if (is_builtin(cmd->tokens[0]) == 1) {
+    int ret = NULL;
+    if (cmd == NULL) {
+        ret = -1;
+    } else if (cmd->builtin == 1) {
         ret = execute_cd(cmd->tokens);
-    } else if (is_builtin(cmd->tokens[0]) == 2) {
+    } else if (cmd->builtin == 2) {
         ret = 0;
         exit(EXIT_SUCCESS);
-    }
+    } else {
+        ret = execute_nonbuiltin(cmd);
+    } 
     return ret;	
 }
 
