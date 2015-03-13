@@ -54,7 +54,10 @@ int main(void) {
 
     int status;
     int fd[2];
-    pipe(fd); 
+    if (pipe(fd) == -1) {
+        perror("pipe");
+        exit(1);
+    }
     int r = fork();
     if (r > 0) {
         if (close(fd[0]) == -1) {
