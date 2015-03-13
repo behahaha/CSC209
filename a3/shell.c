@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
 		
 		/* Construct chain of commands, if multiple commands */
 		command *cmd = construct_command(tokens);
-	//	print_command(cmd, 0);
+		//print_command(cmd, 0);
     
 		int exitcode = 0;
 		if (cmd->scmd) {
@@ -102,10 +102,12 @@ int execute_cd(char** words) {
 	 * - If so, return an EXIT_FAILURE status to indicate something is 
 	 *   wrong.
 	 */
-    if ((words == NULL) | (words[0] == NULL) | (words[1] == NULL)) {
+    if ((words == NULL) | (words[0] == NULL) | (words[1] == NULL && words[0] == NULL)) {
         exit(EXIT_FAILURE);
     } else if (is_builtin(words[0]) != 1) {
         exit(EXIT_FAILURE);
+    } else if (words[0] != NULL && words[1] == NULL && is_builtin(words[0]) == 1) {
+        return 0;
     }
 
 	/**
@@ -120,6 +122,7 @@ int execute_cd(char** words) {
 	 * Hints: see chdir and getcwd man pages.
 	 * Return the success/error code obtained when changing the directory.
 	 */
+    int ret; //our soon to be return value 
     if (is_relative(words[1])) { 
         char newcwd[MAX_DIRNAME]; 
         getcwd(newcwd, MAX_DIRNAME-1);
@@ -127,9 +130,19 @@ int execute_cd(char** words) {
         char *slash = "/";
         strncat(newcwd, slash, 1);
 	strncat(newcwd, words[1], MAX_DIRNAME - strlen(newcwd));
-        return chdir(newcwd);
+        if ((ret = chdir(newcwd)) == -1) {
+            perror("chdir");
+            exit(EXIT_FAILURE);
+        } else {
+            return ret;
+        }
     } else {
-        return chdir(words[1]);
+        if ((ret = chdir(words[1])) == -1) {
+            perror("chdir");
+            exit(EXIT_FAILURE);
+        } else {
+            return ret;
+        }     
     } 
 }
 
@@ -162,11 +175,13 @@ int execute_command(char **tokens) {
     if (execvp(tokens[0], tokens) == -1) {
         char *s  = malloc(strlen(tokens[0]) + 30); 
         memcpy(s, tokens[0], strlen(tokens[0]));
-        char *msg = ": no such file of directory";
+        char *msg = ": no such file or directory";
         strncat(s, msg, sizeof(s) - strlen(tokens[0]));
         perror(s);
+        exit(EXIT_FAILURE);
+    } else {
+        exit(EXIT_SUCCESS);
     }
-    exit(0);
 }
 
 
@@ -188,16 +203,25 @@ int execute_nonbuiltin(simple_command *s) {
 	 * This function returns only if the execution of the program fails.
 	 */
     int status;
-    int f;
-    int fd;
-    int fdtwo; 
-    if (f = fork() == 0) {
+    int f; //catches return value of our fork call
+    int fd; //file descriptor for which ever file we need to open
+    int fdtwo; //file descriptor for the case where we open two files
+    if ((f = fork()) == 0) {
         if (s->in == NULL && s->out == NULL && s->err == NULL) {
             execute_command(s->tokens);
         } else if (s->in == NULL && s->out == NULL) {
-            fd = open(s->err, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR); 
-            dup2(fd, fileno(stderr));
-            close(fd);
+            if ((fd = open(s->err, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR)) == -1) {
+                perror("open");
+                exit(EXIT_FAILURE);
+            } 
+            if (dup2(fd, fileno(stderr)) == -1) {
+                perror("dup2");
+                exit(EXIT_FAILURE);
+            }
+            if (close(fd) == -1) {
+                perror("close");
+                exit(EXIT_FAILURE);
+            } 
             execute_command(s->tokens);
         } else if (s->in == NULL && s->err == NULL) {
             fd = open(s->out, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
@@ -244,9 +268,13 @@ int execute_nonbuiltin(simple_command *s) {
             fdthree = open(s->err, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
             dup2(fdthree, fileno(stderr));
             close(fdthree);
-        }    
-    } else {
+        }
+        exit(EXIT_SUCCESS);   
+    } else if (f > 0) {
         wait(&status);
+    } else {
+        perror("fork");
+        exit(EXIT_FAILURE);
     }
     return 0;
 }
@@ -268,7 +296,7 @@ int execute_simple_command(simple_command *cmd) {
 	 * - The parent should wait for the child.
 	 *   (see wait man pages).
 	 */
-    int ret = NULL;
+    int ret = (int) NULL;
     if (cmd == NULL) {
         ret = -1;
     } else if (cmd->builtin == 1) {
@@ -283,6 +311,7 @@ int execute_simple_command(simple_command *cmd) {
 }
 
 
+//static int count = 0;
 /**
  * Executes a complex command.  A complex command is two commands chained 
  * together with a pipe operator.
@@ -297,7 +326,9 @@ int execute_complex_command(command *c) {
 	 * Execute nonbuiltin commands only. If it's exit or cd, you should not 
 	 * execute these in a piped context, so simply ignore builtin commands. 
 	 */
-	
+    if (c->scmd) {
+        execute_simple_command(c->scmd);
+    }	
 
 
 	/** 
@@ -314,8 +345,31 @@ int execute_complex_command(command *c) {
 		 * parent and the child. Make sure to check any errors in 
 		 * creating the pipe.
 		 */
-
-			
+            int pfd[2];
+            int fOne;
+            int fTwo;
+            //int status;
+            pipe(pfd);
+	    if ((fOne = fork()) == 0) {
+                dup2(pfd[1], fileno(stdout));
+                close(pfd[1]);
+                close(pfd[0]);
+                execute_complex_command(c->cmd1);
+                exit(EXIT_SUCCESS);
+            } else {
+                if ((fTwo = fork()) == 0) {
+                    dup2(pfd[0], fileno(stdin));
+                    close(pfd[0]);
+                    close(pfd[1]);
+                    execute_complex_command(c->cmd2);    
+                    exit(EXIT_SUCCESS);
+                } else {
+                    close(pfd[0]);
+                    close(pfd[1]);
+                    waitpid(fOne, NULL, 0);
+                    waitpid(fTwo, NULL, 0);
+                }
+            }		
 		/**
 		 * TODO: Fork a new process.
 		 * In the child:
