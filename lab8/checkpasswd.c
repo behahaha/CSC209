@@ -52,7 +52,50 @@ int main(void) {
     }
     strip(password, MAXPASSWD);
 
-    /*Your code here*/
-    
+    int status;
+    int fd[2];
+    pipe(fd); 
+    int r = fork();
+    if (r > 0) {
+        if (close(fd[0]) == -1) {
+            perror("close");
+            exit(1);
+        }
+        write(fd[1], userid, MAXPASSWD);
+        write(fd[1], password, MAXPASSWD);
+        if (close(fd[1]) == -1) {
+            perror("close");
+            exit(1);
+        }
+        wait(&status);
+        if (WIFEXITED(status)) {
+            if (WEXITSTATUS(status) == 2) {
+                printf("Invalid password\n");
+            } else if (WEXITSTATUS(status) == 3) {
+                printf("No such user\n");
+            } else {
+                printf("Password Verified\n");
+            }
+        }
+    } else if (r == 0) {
+        if (dup2(fd[0], fileno(stdin)) == -1) {
+            perror("dup2");
+            exit(1);
+        }
+        if (close(fd[0]) == -1) {
+            perror("close");
+            exit(1);
+        }
+        if (close(fd[1]) == -1) {
+            perror("close");
+            exit(1);
+        }
+        execlp("./validate", "validate", (char *)0);
+        perror("validate");
+        exit(EXIT_SUCCESS);
+    } else { 
+        perror("fork");
+        exit(1);
+    }
     return 0;
 }
