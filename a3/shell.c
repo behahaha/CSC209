@@ -61,21 +61,21 @@ int main(int argc, char** argv) {
 		command *cmd = construct_command(tokens);
 		//print_command(cmd, 0);
     
-		int exitcode = 0;
-		if (cmd->scmd) {
-			exitcode = execute_simple_command(cmd->scmd);
-			if (exitcode == -1) {
-				break;
-			}
-		}
-		else {
-			exitcode = execute_complex_command(cmd);
-			if (exitcode == -1) {
-				break;
-			}
-		}
-		release_command(cmd);
-	}
+	// 	int exitcode = 0;
+	// 	if (cmd->scmd) {
+	// 		exitcode = execute_simple_command(cmd->scmd);
+	// 		if (exitcode == -1) {
+	// 			break;
+	// 		}
+	// 	}
+	// 	else {
+	// 		exitcode = execute_complex_command(cmd);
+	// 		if (exitcode == -1) {
+	// 			break;
+	// 		}
+	// 	}
+	// 	release_command(cmd);
+	// }
     
 	return 0;
 }
@@ -228,49 +228,145 @@ int execute_nonbuiltin(simple_command *s) {
                 perror("open");
                 exit(EXIT_FAILURE);
             }
-            dup2(fd, fileno(stdout));
-            close(fd); 
+            if (dup2(fd, fileno(stdout)) == -1) {
+                perror("dup2");
+                exit(EXIT_FAILURE);
+            }
+            if (close(fd) == -1) {
+                perror("close");
+                exit(EXIT_FAILURE);
+            } 
             ret = execute_command(s->tokens);
         } else if (s->out == NULL && s->err == NULL) {
-            fd = open(s->in, O_CREAT | O_WRONLY, S_IRWXU);
-            dup2(fd, fileno(stdin));
-            close(fd);
+            if ((fd = open(s->in, O_CREAT | O_WRONLY, S_IRWXU)) == -1) {
+                perror("open");
+                exit(EXIT_FAILURE);
+            }
+            if (dup2(fd, fileno(stdin)) == -1) {
+                perror("dup2");
+                exit(EXIT_FAILURE);
+            }
+            if (close(fd) == -1) {
+                perror("close");
+                exit(EXIT_FAILURE);
+            }
             ret = execute_command(s->tokens);
         } else if (s->in == NULL) {
-            fd = open(s->out, O_CREAT | O_WRONLY, S_IRWXU);
-            dup2(fd, fileno(stdout));
-            close(fd);
-            fdtwo = open(s->err, O_CREAT | O_WRONLY, S_IRWXU);
-            dup2(fdtwo, fileno(stderr));
-            close(fdtwo);
+            if ((fd = open(s->out, O_CREAT | O_WRONLY, S_IRWXU)) == -1) {
+                perror("open");
+                exit(EXIT_FAILURE);
+            }
+            if (dup2(fd, fileno(stdout)) == -1) {
+                perror("dup2");
+                exit(EXIT_FAILURE);
+            }
+            if (close(fd) == -1) {
+                perror("close");
+                exit(EXIT_FAILURE);
+            }
+            if ((fdtwo = open(s->err, O_CREAT | O_WRONLY, S_IRWXU)) == -1) {
+                perror("open");
+                exit(EXIT_FAILURE);
+            }
+            if (dup2(fdtwo, fileno(stderr)) == -1) {
+                perror("dup2");
+                exit(EXIT_FAILURE);
+            }
+            if (close(fdtwo) == -1) {
+                perror("close");
+                exit(EXIT_FAILURE);
+            }
             ret = execute_command(s->tokens); 
         } else if (s->out == NULL) {
-            fd = open(s->in, O_CREAT | O_WRONLY, S_IRWXU);
-            dup2(fd, fileno(stdin));
-            close(fd);
-            fdtwo = open(s->err, O_CREAT | O_WRONLY, S_IRWXU);
-            dup2(fdtwo, fileno(stderr));
-            close(fdtwo);
+            if ((fd = open(s->in, O_CREAT | O_WRONLY, S_IRWXU)) == -1) {
+                perror("open");
+                exit(EXIT_FAILURE);
+            }
+            if (dup2(fd, fileno(stdin)) == -1) {
+                perror("dup2");
+                exit(EXIT_FAILURE);
+            }
+            if (close(fd) == -1) {
+                perror("close");
+                exit(EXIT_FAILURE);
+            }
+            if ((fdtwo = open(s->err, O_CREAT | O_WRONLY, S_IRWXU)) == -1) {
+                perror("open");
+                exit(EXIT_FAILURE);
+            }
+            if (dup2(fdtwo, fileno(stderr)) == -1) {
+                perror("dup2");
+                exit(EXIT_FAILURE);
+            }
+            if (close(fdtwo) == -1) {
+                perror("close");
+                exit(EXIT_FAILURE);
+            }
             ret = execute_command(s->tokens);
         } else if (s->err == NULL) {
-            fd = open(s->out, O_CREAT | O_WRONLY, S_IRWXU);
-            dup2(fd, fileno(stdout));
-            close(fd);
-            fdtwo = open(s->in, O_CREAT | O_WRONLY, S_IRWXU);
-            dup2(fdtwo, fileno(stdin));
-            close(fdtwo);
+            if ((fd = open(s->out, O_CREAT | O_WRONLY, S_IRWXU)) == -1) {
+                perror("open");
+                exit(EXIT_FAILURE);
+            }
+            if (dup2(fd, fileno(stdout)) == -1) {
+                perror("dup2");
+                exit(EXIT_FAILURE);
+            }
+            if (close(fd) == -1) {
+                perror("close");
+                exit(EXIT_FAILURE);
+            }
+            if ((fdtwo = open(s->in, O_CREAT | O_WRONLY, S_IRWXU)) == -1) {
+                perror("open");
+                exit(EXIT_FAILURE);
+            }
+            if (dup2(fdtwo, fileno(stdin)) == -1) {
+                perro("dup2");
+                exit(EXIT_FAILURE);
+            }
+            if (close(fdtwo) == -1) {
+                perror("close");
+                exit(EXIT_FAILURE);
+            }
             ret = execute_command(s->tokens);
         } else if (s->in != NULL && s->out != NULL && s->err != NULL) {
             int fdthree;
-            fd = open(s->in, O_CREAT | O_WRONLY, S_IRWXU);
-            dup2(fd, fileno(stdin));
-            close(fd);
-            fdtwo = (s->out, O_CREAT | O_WRONLY, S_IRWXU);
-            dup2(fdtwo, fileno(stdout));
-            close(fdtwo);
-            fdthree = open(s->err, O_CREAT | O_WRONLY, S_IRWXU);
-            dup2(fdthree, fileno(stderr));
-            close(fdthree);
+            if ((fd = open(s->in, O_CREAT | O_WRONLY, S_IRWXU)) == -1) {
+                perror("open");
+                exit(EXIT_FAILURE);
+            }
+            if (dup2(fd, fileno(stdin)) == -1) {
+                perror("dup2");
+                exit(EXIT_FAILURE);
+            }
+            if (close(fd) == -1) {
+                perror("close");
+                exit(EXIT_FAILURE);
+            }
+            if ((fdtwo = open(s->out, O_CREAT | O_WRONLY, S_IRWXU)) == -1) {
+                perror("open");
+                exit(EXIT_FAILURE);
+            }
+            if (dup2(fdtwo, fileno(stdout)) == -1) {
+                perror("dup2");
+                exit(EXIT_FAILURE);
+            }
+            if (close(fdtwo) == -1) {
+                perror("close");
+                exit(EXIT_FAILURE);
+            } 
+            if ((fdthree = open(s->err, O_CREAT | O_WRONLY, S_IRWXU)) == -1) {
+                perror("open");
+                exit(EXIT_FAILURE);
+            }
+            if (dup2(fdthree, fileno(stderr)) == -1) {
+                perror("dup2");
+                exit(EXIT_FAILURE);
+            }
+            if (close(fdthree) == -1) {
+                perror("close");
+                exit(EXIT_FAILURE);
+            }
             ret = execute_command(s->tokens);
         }
         if (ret == -1) {
