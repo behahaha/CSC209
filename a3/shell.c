@@ -174,14 +174,15 @@ int execute_command(char **tokens) {
 	 */
     if (execvp(tokens[0], tokens) == -1) {
         char *s  = malloc(strlen(tokens[0]) + 30); 
-        memcpy(s, tokens[0], strlen(tokens[0]));
+        if (memcpy(s, tokens[0], strlen(tokens[0])) == -1) {
+            perror("memcpy");
+            exit(EXIT_FAILURE);
+        }
         char *msg = ": no such file or directory";
         strncat(s, msg, sizeof(s) - strlen(tokens[0]));
         perror(s);
-        exit(EXIT_FAILURE);
-    } else {
-        exit(EXIT_SUCCESS);
-    }
+        return -1; 
+    } 
 }
 
 
@@ -202,15 +203,14 @@ int execute_nonbuiltin(simple_command *s) {
 	 *   function above).
 	 * This function returns only if the execution of the program fails.
 	 */
-    int status;
-    int f; //catches return value of our fork call
+
+    int ret;
     int fd; //file descriptor for which ever file we need to open
     int fdtwo; //file descriptor for the case where we open two files
-    if ((f = fork()) == 0) {
         if (s->in == NULL && s->out == NULL && s->err == NULL) {
-            execute_command(s->tokens);
+            ret = execute_command(s->tokens);
         } else if (s->in == NULL && s->out == NULL) {
-            if ((fd = open(s->err, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR)) == -1) {
+            if ((fd = open(s->err, O_CREAT | O_WRONLY, S_IRWXU)) == -1) {
                 perror("open");
                 exit(EXIT_FAILURE);
             } 
@@ -222,61 +222,60 @@ int execute_nonbuiltin(simple_command *s) {
                 perror("close");
                 exit(EXIT_FAILURE);
             } 
-            execute_command(s->tokens);
+            ret = execute_command(s->tokens);
         } else if (s->in == NULL && s->err == NULL) {
-            fd = open(s->out, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+            if ((fd = open(s->out, O_CREAT | O_WRONLY, S_IRWXU)) == -1) {
+                perror("open");
+                exit(EXIT_FAILURE);
+            }
             dup2(fd, fileno(stdout));
             close(fd); 
-            execute_command(s->tokens);
+            ret = execute_command(s->tokens);
         } else if (s->out == NULL && s->err == NULL) {
-            fd = open(s->in, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+            fd = open(s->in, O_CREAT | O_WRONLY, S_IRWXU);
             dup2(fd, fileno(stdin));
             close(fd);
-            execute_command(s->tokens);
+            ret = execute_command(s->tokens);
         } else if (s->in == NULL) {
-            fd = open(s->out, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+            fd = open(s->out, O_CREAT | O_WRONLY, S_IRWXU);
             dup2(fd, fileno(stdout));
             close(fd);
-            fdtwo = open(s->err, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+            fdtwo = open(s->err, O_CREAT | O_WRONLY, S_IRWXU);
             dup2(fdtwo, fileno(stderr));
             close(fdtwo);
-            execute_command(s->tokens); 
+            ret = execute_command(s->tokens); 
         } else if (s->out == NULL) {
-            fd = open(s->in, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+            fd = open(s->in, O_CREAT | O_WRONLY, S_IRWXU);
             dup2(fd, fileno(stdin));
             close(fd);
-            fdtwo = open(s->err, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+            fdtwo = open(s->err, O_CREAT | O_WRONLY, S_IRWXU);
             dup2(fdtwo, fileno(stderr));
             close(fdtwo);
-            execute_command(s->tokens);
+            ret = execute_command(s->tokens);
         } else if (s->err == NULL) {
-            fd = open(s->out, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+            fd = open(s->out, O_CREAT | O_WRONLY, S_IRWXU);
             dup2(fd, fileno(stdout));
             close(fd);
-            fdtwo = open(s->in, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+            fdtwo = open(s->in, O_CREAT | O_WRONLY, S_IRWXU);
             dup2(fdtwo, fileno(stdin));
             close(fdtwo);
-            execute_command(s->tokens);
+            ret = execute_command(s->tokens);
         } else if (s->in != NULL && s->out != NULL && s->err != NULL) {
             int fdthree;
-            fd = open(s->in, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+            fd = open(s->in, O_CREAT | O_WRONLY, S_IRWXU);
             dup2(fd, fileno(stdin));
             close(fd);
-            fdtwo = (s->out, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+            fdtwo = (s->out, O_CREAT | O_WRONLY, S_IRWXU);
             dup2(fdtwo, fileno(stdout));
             close(fdtwo);
-            fdthree = open(s->err, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+            fdthree = open(s->err, O_CREAT | O_WRONLY, S_IRWXU);
             dup2(fdthree, fileno(stderr));
             close(fdthree);
+            ret = execute_command(s->tokens);
         }
-        exit(EXIT_SUCCESS);   
-    } else if (f > 0) {
-        wait(&status);
-    } else {
-        perror("fork");
-        exit(EXIT_FAILURE);
-    }
-    return 0;
+        if (ret == -1) {
+            return -1;
+        } 
 }
 
 
@@ -305,7 +304,21 @@ int execute_simple_command(simple_command *cmd) {
         ret = 0;
         exit(EXIT_SUCCESS);
     } else {
-        ret = execute_nonbuiltin(cmd);
+        int status, f;
+        if ((f = fork()) == 0) {
+            ret = execute_nonbuiltin(cmd); 
+            if (ret == -1) {
+                exit(EXIT_FAILURE);
+            } else {
+                exit(EXIT_SUCCESS);
+            }
+        } else if (f > 0) {
+            wait(&status);
+        } else {
+            perror("fork");
+            exit(EXIT_FAILURE);
+        }
+        //ret = execute_nonbuiltin(cmd);
     } 
     return ret;	
 }
@@ -351,16 +364,16 @@ int execute_complex_command(command *c) {
             //int status;
             pipe(pfd);
 	    if ((fOne = fork()) == 0) {
+                close(pfd[0]);
                 dup2(pfd[1], fileno(stdout));
                 close(pfd[1]);
-                close(pfd[0]);
                 execute_complex_command(c->cmd1);
                 exit(EXIT_SUCCESS);
             } else {
                 if ((fTwo = fork()) == 0) {
+                    close(pfd[1]);
                     dup2(pfd[0], fileno(stdin));
                     close(pfd[0]);
-                    close(pfd[1]);
                     execute_complex_command(c->cmd2);    
                     exit(EXIT_SUCCESS);
                 } else {
