@@ -61,21 +61,21 @@ int main(int argc, char** argv) {
 		command *cmd = construct_command(tokens);
 		//print_command(cmd, 0);
     
-	// 	int exitcode = 0;
-	// 	if (cmd->scmd) {
-	// 		exitcode = execute_simple_command(cmd->scmd);
-	// 		if (exitcode == -1) {
-	// 			break;
-	// 		}
-	// 	}
-	// 	else {
-	// 		exitcode = execute_complex_command(cmd);
-	// 		if (exitcode == -1) {
-	// 			break;
-	// 		}
-	// 	}
-	// 	release_command(cmd);
-	// }
+	 	int exitcode = 0;
+	 	if (cmd->scmd) {
+	 		exitcode = execute_simple_command(cmd->scmd);
+	 		if (exitcode == -1) {
+	 			break;
+	 		}
+	 	}
+	 	else {
+	 		exitcode = execute_complex_command(cmd);
+	 		if (exitcode == -1) {
+	 			break;
+	 		}
+	 	}
+	 	release_command(cmd);
+	 }
     
 	return 0;
 }
@@ -410,11 +410,17 @@ int execute_simple_command(simple_command *cmd) {
             }
         } else if (f > 0) {
             wait(&status);
+            if (WIFEXITED(status)) {
+                if (WEXITSTATUS(status) == -1) {
+                    ret == -1;
+                } else {
+                    ret = 0;
+                }
+            }
         } else {
             perror("fork");
             exit(EXIT_FAILURE);
         }
-        //ret = execute_nonbuiltin(cmd);
     } 
     return ret;	
 }
@@ -458,26 +464,56 @@ int execute_complex_command(command *c) {
             int fOne;
             int fTwo;
             //int status;
-            pipe(pfd);
+            if (pipe(pfd) == -1) {
+                perror("pipe");
+                exit(EXIT_FAILURE);
+            }
 	    if ((fOne = fork()) == 0) {
-                close(pfd[0]);
-                dup2(pfd[1], fileno(stdout));
-                close(pfd[1]);
+                if (close(pfd[0]) == -1) {
+                    perror("close");
+                    exit(EXIT_FAILURE);
+                }
+                if (dup2(pfd[1], fileno(stdout)) == -1) {
+                    perror("dup2");
+                    exit(EXIT_FAILURE);
+                }
+                if (close(pfd[1]) == -1) { 
+                    perror("close");
+                    exit(EXIT_FAILURE);
+                }
                 execute_complex_command(c->cmd1);
                 exit(EXIT_SUCCESS);
-            } else {
+            } else if (fOne > 0) {
                 if ((fTwo = fork()) == 0) {
-                    close(pfd[1]);
-                    dup2(pfd[0], fileno(stdin));
-                    close(pfd[0]);
+                    if (close(pfd[1]) == -1) {
+                        perror("close");
+                        exit(EXIT_FAILURE);
+                    }
+                    if (dup2(pfd[0], fileno(stdin)) == -1) {
+                        perror("dup2");
+                        exit(EXIT_FAILURE);
+                    }
+                    if (close(pfd[0]) == -1) {
+                        perror("close");
+                        exit(EXIT_FAILURE);
+                    }
                     execute_complex_command(c->cmd2);    
                     exit(EXIT_SUCCESS);
                 } else {
-                    close(pfd[0]);
-                    close(pfd[1]);
+                    if (close(pfd[0]) == -1) {
+                        perror("close");
+                        exit(EXIT_FAILURE);
+                    }
+                    if (close(pfd[1]) == -1) {
+                        perror("close");
+                        exit(EXIT_FAILURE);
+                    }
                     waitpid(fOne, NULL, 0);
                     waitpid(fTwo, NULL, 0);
                 }
+            } else {
+                perror("fork");
+                exit(EXIT_FAILURE);
             }		
 		/**
 		 * TODO: Fork a new process.
