@@ -174,10 +174,7 @@ int execute_command(char **tokens) {
 	 */
     if (execvp(tokens[0], tokens) == -1) {
         char *s  = malloc(strlen(tokens[0]) + 30); 
-        if (memcpy(s, tokens[0], strlen(tokens[0])) == -1) {
-            perror("memcpy");
-            exit(EXIT_FAILURE);
-        }
+        memcpy(s, tokens[0], strlen(tokens[0])); 
         char *msg = ": no such file or directory";
         strncat(s, msg, sizeof(s) - strlen(tokens[0]));
         perror(s);
@@ -321,7 +318,7 @@ int execute_nonbuiltin(simple_command *s) {
                 exit(EXIT_FAILURE);
             }
             if (dup2(fdtwo, fileno(stdin)) == -1) {
-                perro("dup2");
+                perror("dup2");
                 exit(EXIT_FAILURE);
             }
             if (close(fdtwo) == -1) {
