@@ -51,6 +51,12 @@ int setup (void) {
 
 int find_network_newline(char *buf, int inbuf) {
   // Step 1: write this function
+    int i;
+    for (i = 0; i < inbuf - 1; i++) {
+        if (buf[i] == '\r' && buf[i+1] == '\n') {
+            return i;
+        }
+    }
 
   return -1; // return the location of '\r' if found
 }
@@ -79,14 +85,18 @@ int main(void) {
       // Receive messages
       inbuf = 0;          // buffer is empty; has no bytes
       room = sizeof(buf); // room == capacity of the whole buffer
+      int j;
+      for (j = 0; j < 30; j++) {
+        buf[j] = 0;
+      } 
       after = buf;        // start writing at beginning of buf
 
       while ((nbytes = read(fd, after, room)) > 0) {
         // Step 2: update inbuf
-
+        inbuf = inbuf + nbytes;  
         
-        // Step 3: call find_network_newline, store result in where
-
+       // Step 3: call find_network_newline, store result in where
+        where = find_network_newline(buf, inbuf);
         
         if (where >= 0) { // OK. we have a full line
 
@@ -96,12 +106,13 @@ int main(void) {
           // (Replace the "\r\n" with appropriate characters so the 
           // message prints correctly to stdout.)
           
-          
+          buf[where] = '\n';
+          buf[where + 1] = '\0';
           printf ("Next message: %s", buf);
           // Note that we could have also used write to avoid having to
           // put the '\0' in the buffer. Try using write later!
-          
-          
+          inbuf = inbuf - where - 2;
+           memmove(buf, &buf[where+2], 30 - where - 3);
           // Step 5: update inbuf and remove the full line from the buffer
           // There might be stuff after the line, so don't just do inbuf = 0
           
@@ -109,12 +120,12 @@ int main(void) {
           // of the buffer.  A loop can do it, or you can use memmove.
           // memmove(destination, source, number_of_bytes)
         
-
             
         }
         // Step 6: update room and after, in preparation for the next read
 
-
+        after = &buf[30-where-2];
+        room = sizeof(buf) - inbuf;
        
       }
       close (fd);
